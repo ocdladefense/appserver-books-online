@@ -1,12 +1,12 @@
 {
 	"comment": "This is a module template",
-	"name": "module-template", 
-	"description": "A module for building other modules.",
+	"name": "bon", 
+	"description": "Module for viewing OCDLA Books Online publications.",
     "connectedApp":"default",
 	"files": [],
 	"routes": {
-        "example/route":{
-            "callback":"callbackName",
+        "mail/bon/test":{
+            "callback":"testMail",
             "content-type":"text/html"
         }
     }
