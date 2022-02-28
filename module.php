@@ -73,7 +73,7 @@ class BonModule extends Module {
 
 
 
-	public function doMail($to, $subject, $content, $headers = array()){
+	public function doMail($to, $subject, $title, $content, $headers = array()){
 
 		$headers = [
 			"From" 		   => "notifications@ocdla.org",
@@ -88,24 +88,36 @@ class BonModule extends Module {
 		$message->setSubject($subject);
 		$message->setBody($content);
 		$message->setHeaders($headers);
+		$message->setTitle($title);
 
 		return $message;
 	}
 
 
-
+// First notice; send at 30 day expiry;
+// Second notice at 7 days.
 	public function testMail() {
 
 
-		$to = "jbernal.web.dev@gmail.com";
+		$to = "jbernal.web.dev@gmail.com";//"jenny.root@comcast.net";
 		$subject = "Books Online notifications";
 
+		$notice = new Template("expiring-first-notification");
+		$notice->addPath(__DIR__ . "/templates");
+
+		$firstName = "Jennifer";
+		$expirationDate = "March 5, 2022";
+
+		$content = $notice->render(array(
+			"firstName" => $firstName,
+			"expirationDate" => $expirationDate
+		));
 
 		$range = new DateTime("2022-1-10");
 		$end = new DateTime();
-		$content = "My sample content.";
+		
 		
 
-		return $this->doMail($to, $subject, $content);
+		return $this->doMail($to, $subject, "Your Books Online subscription", $content);
 	}
 }
