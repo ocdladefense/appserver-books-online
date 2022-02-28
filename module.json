@@ -3,7 +3,7 @@
 	"name": "bon", 
 	"description": "Module for viewing OCDLA Books Online publications.",
     "connectedApp":"default",
-	"files": [],
+	"files": ["OrderHistory.php","Subscription.php"],
 	"routes": {
         "mail/bon/test":{
             "callback":"testMail",

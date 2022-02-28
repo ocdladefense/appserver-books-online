@@ -1,8 +1,10 @@
 {
-    "name": "ocdladefense/project",
-    "description": "",
+    "name": "ocdladefense/appserver-books-online",
+    "description": "Module for Books Online-related functionality.",
     "type": "wordpress-theme",
     "license": "MIT",
     "authors": [],
-    "require": {}
+    "require": {
+        "ocdladefense/lib-salesforce-rest-api":"~3.0"
+    }
 }
