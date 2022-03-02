@@ -23,50 +23,32 @@ class BonModule extends Module {
         parent::__construct();
     }
 
-
-
-    public function getRecentCarList($court = 'Oregon Appellate Court', DateTime $begin = null, DateTime $end = null) {
-		$begin = null == $begin ? new DateTime() : $begin;
-		
-		$beginMysql = $begin->format('Y-m-j');
-
-		if(null == $end) {
-			$query = "SELECT * FROM car WHERE decision_date = '{$beginMysql}'";
-			$query .= " AND court = '{$court}'";
-		} else {
-			$endMysql = $end->format('Y-m-j');
 	
-			$query = "SELECT * FROM car WHERE decision_date >= '{$beginMysql}'";
-			$query .= " AND decision_date <= '{$endMysql}'";
-			$query .= " AND court = '{$court}'";
+
+    public function goingToExpire() {
+		
+		$api = $this->loadForceApi();
+
+		$productName = "Books Online";
+
+		$soql = "SELECT Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, Id, OrderId, Order.ActivatedDate, Order.EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%{$productName}%' AND IsActive = True) AND Order.EffectiveDate >= 2021-03-01 AND Order.StatusCode != 'Draft' ORDER BY Order.ActivatedDate DESC";
+
+		$resp = $api->query($soql);
+		// var_dump($resp);
+		$formatted = array();
+
+		foreach($resp->getRecords() as $record) {
+			$item = array(
+				"FirstName" => $record["Contact__r"]["FirstName"],
+				"LastName" => $record["Contact__r"]["LastName"],
+				"Email" => $record["Contact__r"]["Email"],
+				"ExpirationDate" => $expiration
+			);
+
+			$formatted []=$item;
 		}
 
-
-
-		// print $query;exit;
-		// ORDER BY year DESC, month DESC, day DESC";
-		$cars = select($query);
-		
-		// var_dump($cars);exit;
-
-		$list = new Template("email-list");
-		$list->addPath(__DIR__ . "/templates");
-
-		$listHtml = $list->render(["cars" => $cars]);
-
-		$body = new Template("email-body");
-		$body->addPath(__DIR__ . "/templates");
-
-		$params = [
-			"year" => $begin->format('Y'),
-			"month" => $begin->format('m'),
-			"day" => $begin->format('j'),
-			"date" => $begin->format('l, M j  Y'),
-			"carList" => $listHtml 
-		];
-
-	
-		return $body->render($params);
+		return $formatted;
 	}
 
 
@@ -97,27 +79,41 @@ class BonModule extends Module {
 // First notice; send at 30 day expiry;
 // Second notice at 7 days.
 	public function testMail() {
+		$list = new MailMessageList();
 
+		$records = $this->goingToExpire();
+		var_dump($records);exit;
 
-		$to = "jbernal.web.dev@gmail.com";//"jenny.root@comcast.net";
-		$subject = "Books Online notifications";
+		$member1 = array(
+			"FirstName" => "Jennifer",
+			"LastName" => "Root",
+			"Email" => "jroot@ocdla.org",
+			"ExpirationDate" => "March 5, 2022"
+		);
 
-		$notice = new Template("expiring-first-notification");
-		$notice->addPath(__DIR__ . "/templates");
+		$member2 = array(
+			"FirstName" => "José",
+			"LastName" => "Bernal",
+			"Email" => "jbernal.web.dev@gmail.com",
+			"ExpirationDate" => "March 5, 2022"
+		);
 
-		$firstName = "Jennifer";
-		$expirationDate = "March 5, 2022";
+	
 
-		$content = $notice->render(array(
-			"firstName" => $firstName,
-			"expirationDate" => $expirationDate
-		));
+		$members = array($member1, $member2);
 
-		$range = new DateTime("2022-1-10");
-		$end = new DateTime();
-		
-		
+		foreach($members as $member) {
 
-		return $this->doMail($to, $subject, "Your Books Online subscription", $content);
+			
+			$subject = "Books Online notifications";
+	
+			$notice = new Template("expiring-first-notification");
+			$notice->addPath(__DIR__ . "/templates");
+			$content = $notice->render($member);
+
+			$list->add($this->doMail($member["Email"], $subject, "Your Books Online subscription", $content));
+		}
+
+		return $list;
 	}
 }
