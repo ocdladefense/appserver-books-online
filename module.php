@@ -32,25 +32,32 @@ class BonModule extends Module {
 		$productName = "Books Online";
 
 
-		$lastYear = new DateTime();
+		$d1 = new DateTime();
+		$d2 = new DateTime();
+		$d1->modify('-365 day');
+		$d2->modify('-335 day');
 
-		$lastYear = $lastYear->format('Y-m-d');
+		$r1 = $d1->format('Y-m-d');
+		$r2 = $d2->format('Y-m-d');
 
-		
-		$soql = "SELECT Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, Id, OrderId, Order.ActivatedDate, Order.EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%{$productName}%' AND IsActive = True) AND Order.EffectiveDate >= 2021-03-01 AND Order.StatusCode != 'Draft' ORDER BY Order.ActivatedDate DESC";
+
+		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True)  GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) >= {$r1} AND MAX(Order.EffectiveDate) <= {$r2}";
 
 		$resp = $api->query($soql);
 
 		// Convert these to subscriptions; 
-		var_dump($resp); exit;
+		// var_dump($resp); exit;
 		$formatted = array();
 
 		foreach($resp->getRecords() as $record) {
+			$friendly = new DateTime($record["EffectiveDate"]);
+			$text = $friendly->format('F j, Y');
+
 			$item = array(
-				"FirstName" => $record["Contact__r"]["FirstName"],
-				"LastName" => $record["Contact__r"]["LastName"],
-				"Email" => $record["Contact__r"]["Email"],
-				"ExpirationDate" => $expiration
+				"FirstName" => $record["FirstName"],
+				"LastName" => $record["LastName"],
+				"Email" => $record["Email"],
+				"ExpirationDate" => $text
 			);
 
 			$formatted []=$item;
@@ -66,7 +73,7 @@ class BonModule extends Module {
 	public function doMail($to, $subject, $title, $content, $headers = array()){
 
 		$headers = [
-			"From" 		   => "notifications@ocdla.org",
+			"From" 		   => "notifications@ocdla.app",
 			"Content-Type" => "text/html"
 		];
 
@@ -89,8 +96,9 @@ class BonModule extends Module {
 	public function testMail() {
 		$list = new MailMessageList();
 
-		$records = $this->goingToExpire();
-		var_dump($records);exit;
+		$subscribers = $this->goingToExpire();
+		// var_dump($subscribers);exit;
+
 
 		$member1 = array(
 			"FirstName" => "Jennifer",
@@ -110,7 +118,7 @@ class BonModule extends Module {
 
 		$members = array($member1, $member2);
 
-		foreach($members as $member) {
+		foreach($subscribers as $member) {
 
 			
 			$subject = "Books Online notifications";
