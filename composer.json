@@ -6,6 +6,7 @@
     "authors": [],
     "require": {
         "ocdladefense/lib-salesforce-rest-api":"~3.0",
+        "ocdladefense/lib-salesforce":"dev-development",
         "ocdladefense/lib-php-template":"dev-development",
         "ocdladefense/lib-date":"dev-development"
     }

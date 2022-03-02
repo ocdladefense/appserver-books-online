@@ -31,10 +31,18 @@ class BonModule extends Module {
 
 		$productName = "Books Online";
 
+
+		$lastYear = new DateTime();
+
+		$lastYear = $lastYear->format('Y-m-d');
+
+		
 		$soql = "SELECT Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, Id, OrderId, Order.ActivatedDate, Order.EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%{$productName}%' AND IsActive = True) AND Order.EffectiveDate >= 2021-03-01 AND Order.StatusCode != 'Draft' ORDER BY Order.ActivatedDate DESC";
 
 		$resp = $api->query($soql);
-		// var_dump($resp);
+
+		// Convert these to subscriptions; 
+		var_dump($resp); exit;
 		$formatted = array();
 
 		foreach($resp->getRecords() as $record) {

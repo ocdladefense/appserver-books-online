@@ -76,6 +76,8 @@ class Subscription {
 	}
 
 
+	/*
+
 	public function getExpiring() {
 
 		$effectiveDate = // Date the subscription started
@@ -90,6 +92,6 @@ class Subscription {
 
 
 	}
-
+*/
 
 }
