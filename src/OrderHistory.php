@@ -34,18 +34,6 @@ class OrderHistory extends RestApiRequest {
 	}
 
 
-	/*
-	public static function loadApi($instanceUrl, $accessToken) {
-
-		// If the access token has been removed from the session, return false...for now.  (Need a better solution)
-		if(empty($accessToken) || empty($instanceUrl)) {
-			throw new \Exception("foobar");
-		}
-		self::$api = new \Salesforce\RestApiRequest($instanceUrl, $accessToken);
-	}
-
-	*/
-
 
 	public function getSampleSubscription($status = "expiring") {
 		$sub = array(
@@ -67,6 +55,18 @@ class OrderHistory extends RestApiRequest {
 		$record =  ($resp->success() && count($resp->getRecords()) > 0) ? $resp->getFirst() : null;
 
 		return new Subscription($record);
+	}
+
+
+	public function goingToExpire() {
+
+		$productName = "Books Online";
+
+		$soql = "SELECT Id, OrderId, Order.ActivatedDate, Order.EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%{$productName}%' AND IsActive = True) AND Order.StatusCode != 'Draft' ORDER BY Order.ActivatedDate DESC LIMIT 1";
+
+		$resp = $this->query($soql);
+
+		return $resp->getRecords();
 	}
 
 

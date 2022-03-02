@@ -76,4 +76,22 @@ class Subscription {
 	}
 
 
+	/*
+
+	public function getExpiring() {
+
+		$effectiveDate = // Date the subscription started
+
+		$expiration = $effectiveDate + 365
+
+		if($expiration <= $today + 30 && $expiration >= $today {
+
+			// Add it to the list.
+			
+		}
+
+
+	}
+*/
+
 }

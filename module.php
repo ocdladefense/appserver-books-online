@@ -23,60 +23,57 @@ class BonModule extends Module {
         parent::__construct();
     }
 
-
-
-    public function getRecentCarList($court = 'Oregon Appellate Court', DateTime $begin = null, DateTime $end = null) {
-		$begin = null == $begin ? new DateTime() : $begin;
-		
-		$beginMysql = $begin->format('Y-m-j');
-
-		if(null == $end) {
-			$query = "SELECT * FROM car WHERE decision_date = '{$beginMysql}'";
-			$query .= " AND court = '{$court}'";
-		} else {
-			$endMysql = $end->format('Y-m-j');
 	
-			$query = "SELECT * FROM car WHERE decision_date >= '{$beginMysql}'";
-			$query .= " AND decision_date <= '{$endMysql}'";
-			$query .= " AND court = '{$court}'";
+
+    public function goingToExpire() {
+		
+		$api = $this->loadForceApi();
+
+		$productName = "Books Online";
+
+
+		$d1 = new DateTime();
+		$d2 = new DateTime();
+		$d1->modify('-365 day');
+		$d2->modify('-335 day');
+
+		$r1 = $d1->format('Y-m-d');
+		$r2 = $d2->format('Y-m-d');
+
+
+		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True)  GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) >= {$r1} AND MAX(Order.EffectiveDate) <= {$r2}";
+
+		$resp = $api->query($soql);
+
+		// Convert these to subscriptions; 
+		// var_dump($resp); exit;
+		$formatted = array();
+
+		foreach($resp->getRecords() as $record) {
+			$friendly = new DateTime($record["EffectiveDate"]);
+			$text = $friendly->format('F j, Y');
+
+			$item = array(
+				"FirstName" => $record["FirstName"],
+				"LastName" => $record["LastName"],
+				"Email" => $record["Email"],
+				"ExpirationDate" => $text
+			);
+
+			$formatted []=$item;
 		}
 
-
-
-		// print $query;exit;
-		// ORDER BY year DESC, month DESC, day DESC";
-		$cars = select($query);
-		
-		// var_dump($cars);exit;
-
-		$list = new Template("email-list");
-		$list->addPath(__DIR__ . "/templates");
-
-		$listHtml = $list->render(["cars" => $cars]);
-
-		$body = new Template("email-body");
-		$body->addPath(__DIR__ . "/templates");
-
-		$params = [
-			"year" => $begin->format('Y'),
-			"month" => $begin->format('m'),
-			"day" => $begin->format('j'),
-			"date" => $begin->format('l, M j  Y'),
-			"carList" => $listHtml 
-		];
-
-	
-		return $body->render($params);
+		return $formatted;
 	}
 
 
 
 
 
-	public function doMail($to, $subject, $content, $headers = array()){
+	public function doMail($to, $subject, $title, $content, $headers = array()){
 
 		$headers = [
-			"From" 		   => "notifications@ocdla.org",
+			"From" 		   => "notifications@ocdla.app",
 			"Content-Type" => "text/html"
 		];
 
@@ -88,24 +85,51 @@ class BonModule extends Module {
 		$message->setSubject($subject);
 		$message->setBody($content);
 		$message->setHeaders($headers);
+		$message->setTitle($title);
 
 		return $message;
 	}
 
 
-
+// First notice; send at 30 day expiry;
+// Second notice at 7 days.
 	public function testMail() {
+		$list = new MailMessageList();
+
+		$subscribers = $this->goingToExpire();
+		// var_dump($subscribers);exit;
 
 
-		$to = "jbernal.web.dev@gmail.com";
-		$subject = "Books Online notifications";
+		$member1 = array(
+			"FirstName" => "Jennifer",
+			"LastName" => "Root",
+			"Email" => "jroot@ocdla.org",
+			"ExpirationDate" => "March 5, 2022"
+		);
 
+		$member2 = array(
+			"FirstName" => "José",
+			"LastName" => "Bernal",
+			"Email" => "jbernal.web.dev@gmail.com",
+			"ExpirationDate" => "March 5, 2022"
+		);
 
-		$range = new DateTime("2022-1-10");
-		$end = new DateTime();
-		$content = "My sample content.";
-		
+	
 
-		return $this->doMail($to, $subject, $content);
+		$members = array($member1, $member2);
+
+		foreach($subscribers as $member) {
+
+			
+			$subject = "Books Online notifications";
+	
+			$notice = new Template("expiring-first-notification");
+			$notice->addPath(__DIR__ . "/templates");
+			$content = $notice->render($member);
+
+			$list->add($this->doMail($member["Email"], $subject, "Your Books Online subscription", $content));
+		}
+
+		return $list;
 	}
 }
