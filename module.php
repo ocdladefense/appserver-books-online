@@ -58,7 +58,7 @@ class BonModule extends Module {
 			$item = array(
 				"FirstName" => $record["FirstName"],
 				"LastName" => $record["LastName"],
-				"Email" => "jbernal.web.dev@gmail.com",//$record["Email"],
+				"Email" => $record["Email"],
 				"ExpirationDate" => $text
 			);
 
@@ -77,7 +77,8 @@ class BonModule extends Module {
 		$headers = [
 			"From" 		   	=> "Notifications <notifications@ocdla.app>",
 			"Content-Type" 	=> "text/html",
-			"Bcc" 			=> "jroot@ocdla.org, jbernal.web.dev@gmail.com"
+			"Cc"			=> "jroot@ocdla.org",
+			"Bcc" 			=> "jbernal.web.dev@gmail.com"
 		];
 
 		$headers = HttpHeaderCollection::fromArray($headers);
