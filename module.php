@@ -25,23 +25,23 @@ class BonModule extends Module {
 
 	
 
-    public function goingToExpire() {
+    public function goingToExpire($days = 30) {
 		
 		$api = $this->loadForceApi();
 
 		$productName = "Books Online";
-
+		$put = 365 - $days;
 
 		$d1 = new DateTime();
 		$d2 = new DateTime();
 		$d1->modify('-365 day');
-		$d2->modify('-335 day');
+		$d2->modify('-'.$put.' day');
 
 		$r1 = $d1->format('Y-m-d');
 		$r2 = $d2->format('Y-m-d');
 
-
-		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True)  GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) >= {$r1} AND MAX(Order.EffectiveDate) <= {$r2}";
+	
+		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True)  GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) = {$r2}";
 
 		$resp = $api->query($soql);
 
@@ -100,7 +100,8 @@ class BonModule extends Module {
 	public function testMail() {
 		$list = new MailMessageList();
 
-		$subscribers = $this->goingToExpire();
+		// get 'em 30 days out.
+		$subscribers = $this->goingToExpire(30);
 		// var_dump($subscribers);exit;
 
 
