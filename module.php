@@ -56,7 +56,7 @@ class BonModule extends Module {
 			$item = array(
 				"FirstName" => $record["FirstName"],
 				"LastName" => $record["LastName"],
-				"Email" => $record["Email"],
+				"Email" => "jbernal.web.dev@gmail.com",//$record["Email"],
 				"ExpirationDate" => $text
 			);
 
@@ -73,13 +73,13 @@ class BonModule extends Module {
 	public function doMail($to, $subject, $title, $content, $headers = array()){
 
 		$headers = [
-			"From" 		   => "notifications@ocdla.app",
+			"From" 		   => "Notifications <notifications@ocdla.app>",
 			"Content-Type" => "text/html"
 		];
 
 		$headers = HttpHeaderCollection::fromArray($headers);
 
-
+		// var_dump($headers);exit;
 
 		$message = new MailMessage($to);
 		$message->setSubject($subject);
@@ -110,13 +110,20 @@ class BonModule extends Module {
 		$member2 = array(
 			"FirstName" => "José",
 			"LastName" => "Bernal",
-			"Email" => "jbernal.web.dev@gmail.com",
+			"Email" => "test-hm2my9xjf@srv1.mail-tester.com",
+			"ExpirationDate" => "March 5, 2022"
+		);
+
+		$member3 = array(
+			"FirstName" => "José",
+			"LastName" => "Bernal",
+			"Email" => "admin@ocdla.org",
 			"ExpirationDate" => "March 5, 2022"
 		);
 
 	
 
-		$members = array($member1, $member2);
+		$members = array($member1, $member2, $member3);
 
 		foreach($subscribers as $member) {
 
