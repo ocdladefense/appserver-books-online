@@ -137,7 +137,8 @@ class BonModule extends Module {
 			$notice->addPath(__DIR__ . "/templates");
 			$content = $notice->render($member);
 
-			$list->add($this->doMail($member["Email"], $subject, "Your Books Online subscription", $content));
+			$list->add($this->doMail($member["Email"], $subject, "OCDLA Books Online 
+			Subscription", $content));
 		}
 
 		return $list;
