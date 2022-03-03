@@ -51,6 +51,8 @@ class BonModule extends Module {
 
 		foreach($resp->getRecords() as $record) {
 			$friendly = new DateTime($record["EffectiveDate"]);
+			$friendly->modify('+365 day');
+			
 			$text = $friendly->format('F j, Y');
 
 			$item = array(
@@ -73,8 +75,9 @@ class BonModule extends Module {
 	public function doMail($to, $subject, $title, $content, $headers = array()){
 
 		$headers = [
-			"From" 		   => "Notifications <notifications@ocdla.app>",
-			"Content-Type" => "text/html"
+			"From" 		   	=> "Notifications <notifications@ocdla.app>",
+			"Content-Type" 	=> "text/html",
+			"Bcc" 			=> "jroot@ocdla.org, jbernal.web.dev@gmail.com"
 		];
 
 		$headers = HttpHeaderCollection::fromArray($headers);
