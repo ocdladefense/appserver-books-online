@@ -8,6 +8,11 @@
         "mail/bon/test":{
             "callback":"testMail",
             "content-type":"text/html"
+        },
+        "mail/bon/send":{
+            "callback":"sendMail",
+            "content-type":"text/html",
+            "ip":["172.31.22.87"]
         }
     }
 }

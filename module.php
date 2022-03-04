@@ -23,7 +23,14 @@ class BonModule extends Module {
         parent::__construct();
     }
 
-	
+	public function range($d1, $d2) {
+
+		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True)  GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) >= {$r1} AND MAX(Order.EffectiveDate) <= {$r2}";
+	}
+
+
+
+
 
     public function goingToExpire($days = 30) {
 		
@@ -49,6 +56,11 @@ class BonModule extends Module {
 		// var_dump($resp); exit;
 		$formatted = array();
 
+		if(null == $resp->getRecords()) {
+			return array();
+		}
+
+		
 		foreach($resp->getRecords() as $record) {
 			$friendly = new DateTime($record["EffectiveDate"]);
 			$friendly->modify('+365 day');
@@ -72,7 +84,7 @@ class BonModule extends Module {
 
 
 
-	public function doMail($to, $subject, $title, $content, $headers = array()){
+	public function getMailMessage($to, $subject, $title, $content, $headers = array()){
 
 		$headers = [
 			"From" 		   	=> "Notifications <notifications@ocdla.app>",
@@ -82,8 +94,6 @@ class BonModule extends Module {
 		];
 
 		$headers = HttpHeaderCollection::fromArray($headers);
-
-		// var_dump($headers);exit;
 
 		$message = new MailMessage($to);
 		$message->setSubject($subject);
@@ -95,14 +105,39 @@ class BonModule extends Module {
 	}
 
 
-// First notice; send at 30 day expiry;
-// Second notice at 7 days.
-	public function testMail() {
+
+
+
+
+	public function sendMail($daysOut = 30) {
 		$list = new MailMessageList();
 
 		// get 'em 30 days out.
 		$subscribers = $this->goingToExpire(30);
-		// var_dump($subscribers);exit;
+
+		foreach($subscribers as $member) {
+
+			
+			$subject = "Books Online notifications";
+	
+			$notice = new Template("expiring-first-notification");
+			$notice->addPath(__DIR__ . "/templates");
+			$content = $notice->render($member);
+
+			$list->add($this->getMailMessage($member["Email"], $subject, "OCDLA Books Online 
+			Subscription", $content));
+		}
+
+		return $list;
+	}
+
+
+
+// First notice; send at 30 day expiry;
+// Second notice at 7 days.
+	public function testMail($daysOut = 30) {
+		$list = new MailMessageList();
+
 
 
 		$member1 = array(
@@ -128,9 +163,9 @@ class BonModule extends Module {
 
 	
 
-		$members = array($member1, $member2, $member3);
+		$sample = array();//$member1, $member2, $member3);
 
-		foreach($subscribers as $member) {
+		foreach($sample as $member) {
 
 			
 			$subject = "Books Online notifications";
@@ -139,9 +174,10 @@ class BonModule extends Module {
 			$notice->addPath(__DIR__ . "/templates");
 			$content = $notice->render($member);
 
-			$list->add($this->doMail($member["Email"], $subject, "OCDLA Books Online 
+			$list->add($this->getMailMessage($member["Email"], $subject, "OCDLA Books Online 
 			Subscription", $content));
 		}
+
 
 		return $list;
 	}
