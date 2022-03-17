@@ -60,21 +60,7 @@ class Mail extends \Presentation\Component {
 		$form = new \Template("custom-fields");
 		$form->addPath(__DIR__ . "/templates");
 
-		return $form->render();
-	}
 
-
-
-
-	public function getPreview() {
-		$list = new MailMessageList();
-
-		
-		$user = current_user();
-		$req = $this->getRequest();
-		$body = $req->getBody();
-
-	
 
 		$member1 = array(
 			"FirstName" => "Jennifer",
@@ -97,20 +83,46 @@ class Mail extends \Presentation\Component {
 			"ExpirationDate" => "March 5, 2022"
 		);
 
+		$subscribers = array($member1,$member2,$member3);
+
+		// Get the current user's ContactId.
+		$subscribers = array("someid" => "José Bernal (Exp. March 5, 2022)");
+
+		return $form->render(array("subscribers"=>$subscribers));
+	}
+
+
+
+
+	public function getPreview() {
+		$list = new \MailMessageList();
+
+		
+		$user = current_user();
+		$req = $this->getRequest();
+		$body = $req->getBody();
+
+	
+
 	
 
 		// $members = array($member1, $member2, $member3);
-
+		$member = array(
+			"FirstName" => "Jennifer",
+			"LastName" => "Root",
+			"Email" => "jroot@ocdla.org",
+			"ExpirationDate" => "March 5, 2022"
+		);
 		
 
 			$subject = "Books Online notifications";
 	
-			$notice = new Template("expiring-first-notification");
+			$notice = new \Template("expiring-first-notification");
 			$notice->addPath(__DIR__ . "/templates");
-			$content = $notice->render($member1);
+			$content = $notice->render($member);
 		
 
-		return array("Books Online notifications","Books Online notifications", $content);
+		return array("Your OCDLA Books Online subscription","Books Online notification", $content);
 	}
 
 
@@ -125,8 +137,8 @@ class Mail extends \Presentation\Component {
 		$productName = "Books Online";
 		$put = 365 - $days;
 
-		$d1 = new DateTime();
-		$d2 = new DateTime();
+		$d1 = new \DateTime();
+		$d2 = new \DateTime();
 		$d1->modify('-365 day');
 		$d2->modify('-'.$put.' day');
 
@@ -143,7 +155,7 @@ class Mail extends \Presentation\Component {
 		$formatted = array();
 
 		foreach($resp->getRecords() as $record) {
-			$friendly = new DateTime($record["EffectiveDate"]);
+			$friendly = new \DateTime($record["EffectiveDate"]);
 			$friendly->modify('+365 day');
 			
 			$text = $friendly->format('F j, Y');
@@ -166,7 +178,7 @@ class Mail extends \Presentation\Component {
 // First notice; send at 30 day expiry;
 // Second notice at 7 days.
 	public function testMail() {
-		$list = new MailMessageList();
+		$list = new \MailMessageList();
 
 		// get 'em 30 days out.
 		$subscribers = $this->goingToExpire(30);
@@ -203,7 +215,7 @@ class Mail extends \Presentation\Component {
 			
 			$subject = "Books Online notifications";
 	
-			$notice = new Template("expiring-first-notification");
+			$notice = new \Template("expiring-first-notification");
 			$notice->addPath(__DIR__ . "/templates");
 			$content = $notice->render($member);
 
