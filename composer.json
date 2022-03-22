@@ -5,10 +5,10 @@
     "license": "MIT",
     "authors": [],
     "require": {
-        "ocdladefense/lib-salesforce":"dev-development",
-        "ocdladefense/lib-salesforce-rest-api":"dev-development",
-        "ocdladefense/lib-php-template":"dev-development",
-        "ocdladefense/lib-date":"dev-development"
+        "ocdladefense/lib-salesforce":"~1.0",
+        "ocdladefense/lib-salesforce-rest-api":"~3.0",
+        "ocdladefense/lib-php-template":"~1.0",
+        "ocdladefense/lib-date":"~1.0"
     },
     "autoload": {
         "classmap": ["components/"]
