@@ -38,6 +38,23 @@ use function Mysql\select;
 
 class Mail extends \Presentation\Component {
 
+	private $templates = array(
+		"expiring-first-notification" 	=> array(
+			"name" => "BON First Notification",
+			"subject" => "Books Online notifications",
+			"title" => "Your Books Online Subscription"
+		),
+		"expiring-second-notification"	=> array(
+			"name" => "BON Second Notification",
+			"subject" => "Books Online notifications",
+			"title" => "Your Books Online Subscription"
+		),
+		"disregard"	=> array(
+			"name" => "BON Our Mistake",
+			"subject" => "Correction: Books Online notifications",
+			"title" => "Your Books Online Subscription"
+		)
+	);
 
 
 	public function __construct() {
@@ -47,10 +64,7 @@ class Mail extends \Presentation\Component {
 
 	public function getTemplates() {
 
-		return array(
-			"bon-expiring-first-notification" 	=> "BON First Notification",
-			"bon-expiring-second-notification"	=> "BON Second Notification"
-		);
+		return $this->templates;
 	}
 
 
@@ -61,32 +75,7 @@ class Mail extends \Presentation\Component {
 		$form->addPath(__DIR__ . "/templates");
 
 
-
-		$member1 = array(
-			"FirstName" => "Jennifer",
-			"LastName" => "Root",
-			"Email" => "jroot@ocdla.org",
-			"ExpirationDate" => "March 5, 2022"
-		);
-
-		$member2 = array(
-			"FirstName" => "José",
-			"LastName" => "Bernal",
-			"Email" => "test-hm2my9xjf@srv1.mail-tester.com",
-			"ExpirationDate" => "March 5, 2022"
-		);
-
-		$member3 = array(
-			"FirstName" => "José",
-			"LastName" => "Bernal",
-			"Email" => "admin@ocdla.org",
-			"ExpirationDate" => "March 5, 2022"
-		);
-
-		$subscribers = array($member1,$member2,$member3);
-
-		// Get the current user's ContactId.
-		$subscribers = array("someid" => "José Bernal (Exp. March 5, 2022)");
+		$subscribers = $this->getSample();
 
 		return $form->render(array("subscribers"=>$subscribers));
 	}
@@ -94,35 +83,32 @@ class Mail extends \Presentation\Component {
 
 
 
-	public function getPreview() {
+	public function getPreview($template) {
+
+		$data = $this->templates[$template];
+
+
 		$list = new \MailMessageList();
 
 		
 		$user = current_user();
 		$req = $this->getRequest();
 		$body = $req->getBody();
-
-	
-
-	
-
-		// $members = array($member1, $member2, $member3);
-		$member = array(
-			"FirstName" => "Jennifer",
-			"LastName" => "Root",
-			"Email" => "jroot@ocdla.org",
-			"ExpirationDate" => "March 5, 2022"
-		);
+		// var_dump($body);exit;
+		$sample = $this->getSample();
+		$subscriber = $sample[0];
 		
 
-			$subject = "Books Online notifications";
-	
-			$notice = new \Template("expiring-first-notification");
-			$notice->addPath(__DIR__ . "/templates");
-			$content = $notice->render($member);
-		
+		$subject = $data["subject"];
+		$title = $data["title"];
 
-		return array("Your OCDLA Books Online subscription","Books Online notification", $content);
+
+		$notice = new \Template($template);
+		$notice->addPath(__DIR__ . "/templates");
+		$content = $notice->render($subscriber);
+	
+
+		return array($subject,$title,$content);
 	}
 
 
@@ -132,7 +118,7 @@ class Mail extends \Presentation\Component {
 
     public function goingToExpire($days = 30) {
 		
-		$api = $this->loadForceApi();
+		$api = loadApi();
 
 		$productName = "Books Online";
 		$put = 365 - $days;
@@ -146,7 +132,7 @@ class Mail extends \Presentation\Component {
 		$r2 = $d2->format('Y-m-d');
 
 	
-		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True)  GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) = {$r2}";
+		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True) AND Contact__r.Email != null GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) = {$r2}";
 
 		$resp = $api->query($soql);
 
@@ -175,16 +161,49 @@ class Mail extends \Presentation\Component {
 
 
 
-// First notice; send at 30 day expiry;
-// Second notice at 7 days.
-	public function testMail() {
+
+	
+	// First notice; send at 30 day expiry;
+	// Second notice at 7 days.
+	public function getMessages($sample = false) {
 		$list = new \MailMessageList();
 
+		$headers = [
+			"From" 		   	=> "notifications@ocdla.org",
+			"Content-Type" 	=> "text/html",
+			"Cc"			=> "jroot@ocdla.org",
+            "Bcc"           => "jbernal.web.dev@gmail.com"
+		];
+
+		$headers = HttpHeaderCollection::fromArray($headers);
+
 		// get 'em 30 days out.
-		$subscribers = $this->goingToExpire(30);
-		// var_dump($subscribers);exit;
+		$subscribers = $sample ? $this->getSample() : $this->goingToExpire(30);
+
+		foreach($subscribers as $member) {
+	
+			$notice = new \Template("disregard");
+			$notice->addPath(__DIR__ . "/templates");
+			$content = $notice->render($member);
 
 
+			$message = new \MailMessage($member["Email"]);
+			$message->setSubject("Books Online notifications");
+			$message->setTitle("OCDLA Books Online Subscription");
+			$message->setBody($content);
+			$message->setHeaders($headers);
+
+			$list->add($message);
+		}
+
+
+		return $list;
+	}
+
+
+
+
+	private function getSample() {
 		$member1 = array(
 			"FirstName" => "Jennifer",
 			"LastName" => "Root",
@@ -208,53 +227,11 @@ class Mail extends \Presentation\Component {
 
 	
 
-		$members = array($member1, $member2, $member3);
-
-		foreach($subscribers as $member) {
-
-			
-			$subject = "Books Online notifications";
-	
-			$notice = new \Template("expiring-first-notification");
-			$notice->addPath(__DIR__ . "/templates");
-			$content = $notice->render($member);
-
-			$list->add($this->doMail($member["Email"], $subject, "OCDLA Books Online 
-			Subscription", $content));
-		}
-
-		return $list;
+		return array($member1, $member2, $member3);
 	}
 
 
 
-
-
-
-
-	/*
-	public function doMail($to, $subject, $title, $content, $headers = array()){
-
-		$headers = [
-			"From" 		   	=> "Notifications <notifications@ocdla.app>",
-			"Content-Type" 	=> "text/html",
-			"Cc"			=> "jroot@ocdla.org",
-			"Bcc" 			=> "jbernal.web.dev@gmail.com"
-		];
-
-		$headers = HttpHeaderCollection::fromArray($headers);
-
-		// var_dump($headers);exit;
-
-		$message = new MailMessage($to);
-		$message->setSubject($subject);
-		$message->setBody($content);
-		$message->setHeaders($headers);
-		$message->setTitle($title);
-
-		return $message;
-	}
-	*/
 
 
 }

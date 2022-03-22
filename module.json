@@ -5,16 +5,6 @@
     "connectedApp":"default",
     "mail": true,
 	"files": ["OrderHistory.php","Subscription.php"],
-	"routes": {
-        "mail/bon/test":{
-            "callback":"testMail",
-            "content-type":"text/html"
-        },
-        "mail/bon/send":{
-            "callback":"sendMail",
-            "content-type":"text/html",
-            "ip":["172.31.22.87"]
-        }
-    }
+	"routes": {}
 }
 
