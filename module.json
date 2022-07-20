@@ -5,6 +5,17 @@
     "connectedApp":"default",
     "mail": true,
 	"files": ["OrderHistory.php","Subscription.php"],
-	"routes": {}
+	"routes": {
+		"bon/expiring/%days": {
+			"callback": "list",
+			"access": true,
+			"content-type": "text/html"
+		},
+		"bon/expiring/send": {
+			"callback": "sendMail",
+			"access": true,
+			"content-type": "text/html"
+		}
+	}
 }
 

@@ -30,6 +30,184 @@ class BonModule extends Module {
 
 
 
+    public function list($range) {
+
+
+		$productName = "Books Online";
+		$daysUntilExpiry = 365 - $range;
+
+		$d1 = new \DateTime();
+		$d2 = new \DateTime();
+		$d1->modify('-365 day');
+		$d2->modify('-'.$daysUntilExpiry.' day');
+
+		$date1 = $d1->format('Y-m-d');
+		$date2 = $d2->format('Y-m-d');
+
+
+        $expiring = $this->expiresBetween($date1, $date2);
+
+        $messages = $this->getMessages($expiring);
+
+
+        $results = MailClient::sendMail($messages);
+
+        var_dump($results, $messages);
+        exit;
+    }
+
+
+    public function sendMail() {
+        $range = 30;
+
+		$productName = "Books Online";
+		$daysUntilExpiry = 365 - $range;
+
+		$d1 = new \DateTime();
+		$d2 = new \DateTime();
+		$d1->modify('-365 day');
+		$d2->modify('-'.$daysUntilExpiry.' day');
+
+		$date1 = $d1->format('Y-m-d');
+		$date2 = $d2->format('Y-m-d');
+
+
+        $expiring = $this->expiresBetween($date1, $date2);
+
+        $messages = $this->getMessages($expiring, true);
+
+
+        $results = MailClient::sendMail($messages);
+
+        var_dump($results, $messages);
+        exit;
+    }
+
+
+
+
+	// First notice; send at 30 day expiry;
+	// Second notice at 7 days.
+	public function getMessages($expiring, $test = true) {
+		$list = new \MailMessageList();
+
+		$headers = [
+			"From" 		   	=> "notifications@ocdla.org",
+			"Content-Type" 	=> "text/html",
+			"Cc"			=> "jroot@ocdla.org",
+            "Bcc"           => "jbernal.web.dev@gmail.com"
+		];
+
+		$headers = HttpHeaderCollection::fromArray($headers);
+
+		foreach($expiring as $member) {
+	
+			$notice = new \Template("expiring-first-notification");
+			$notice->addPath(__DIR__ . "/templates");
+			$content = $notice->render($member);
+
+
+			$message = $test ? new \MailMessage("jbernal.web.dev@gmail.com") : new \MailMessage($member["Email"]);
+			$message->setSubject("Books Online notifications");
+			$message->setTitle("OCDLA Books Online Subscription");
+			$message->setBody($content);
+			$message->setHeaders($headers);
+
+			$list->add($message);
+		}
+
+
+		return $list;
+	}
+
+
+
+
+    public function expiresBetween($start = null, $end = null) {
+		
+		$api = loadApi();
+
+
+	
+		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True) AND Contact__r.Email != null GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) >= {$start} AND MAX(Order.EffectiveDate) <= {$end}";
+
+        var_dump($soql);
+
+		$resp = $api->query($soql);
+
+		// Convert these to subscriptions; 
+		// var_dump($resp); exit;
+		$formatted = array();
+
+		foreach($resp->getRecords() as $record) {
+			$friendly = new \DateTime($record["EffectiveDate"]);
+			$friendly->modify('+365 day');
+			
+			$text = $friendly->format('F j, Y');
+
+			$item = array(
+				"FirstName" => $record["FirstName"],
+				"LastName" => $record["LastName"],
+				"Email" => $record["Email"],
+				"ExpirationDate" => $text
+			);
+
+			$formatted []=$item;
+		}
+
+		return $formatted;
+	}
+
+
+    /**
+     * Books Online purchases made 365 days in the past would be expiring TODAY.  So we query for purchases made (365 - $day) in the past; effectively
+     * this means that we query for subscriptions expiring $days from TODAY.
+     */
+    public function goingToExpire($days = 30) {
+		
+		$api = loadApi();
+
+		$productName = "Books Online";
+		$daysUntilExpiry = 365 - $days;
+
+		$d1 = new \DateTime();
+		$d2 = new \DateTime();
+		$d1->modify('-365 day');
+		$purchaseDate->modify('-'.$daysUntilExpiry.' day');
+
+		$r1 = $d1->format('Y-m-d');
+		$purchaseDateFormatted = $purchaseDate->format('Y-m-d');
+
+	
+		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True) AND Contact__r.Email != null GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) = {$purchaseDateFormatted}";
+
+		$resp = $api->query($soql);
+
+		// Convert these to subscriptions; 
+		// var_dump($resp); exit;
+		$formatted = array();
+
+		foreach($resp->getRecords() as $record) {
+			$friendly = new \DateTime($record["EffectiveDate"]);
+			$friendly->modify('+365 day');
+			
+			$text = $friendly->format('F j, Y');
+
+			$item = array(
+				"FirstName" => $record["FirstName"],
+				"LastName" => $record["LastName"],
+				"Email" => $record["Email"],
+				"ExpirationDate" => $text
+			);
+
+			$formatted []=$item;
+		}
+
+		return $formatted;
+	}
+
+
+
 
 
 }
