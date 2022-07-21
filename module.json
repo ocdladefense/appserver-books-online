@@ -6,13 +6,13 @@
     "mail": true,
 	"files": ["OrderHistory.php","Subscription.php"],
 	"routes": {
-		"bon/expiring/%days": {
-			"callback": "list",
+		"bon/expiring/send": {
+			"callback": "sendBonExpirations",
 			"access": true,
 			"content-type": "text/html"
 		},
-		"bon/expiring/send": {
-			"callback": "sendMail",
+		"bon/expiring/%days": {
+			"callback": "list",
 			"access": true,
 			"content-type": "text/html"
 		}

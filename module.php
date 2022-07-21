@@ -46,11 +46,12 @@ class BonModule extends Module {
 
 
         $expiring = $this->expiresBetween($date1, $date2);
-
+		var_dump($expiring);
+		exit;
         $messages = $this->getMessages($expiring);
 
 
-        $results = MailClient::sendMail($messages);
+        // $results = MailClient::sendMail($messages);
 
         var_dump($results, $messages);
         exit;
@@ -72,10 +73,10 @@ class BonModule extends Module {
 		$date2 = $d2->format('Y-m-d');
 
 
-        $expiring = $this->expiresBetween($date1, $date2);
+        // $expiring = $this->expiresBetween($date1, $date2);
 
-        $messages = $this->getMessages($expiring, true);
-
+        $messages = $this->getMessages($expiring, false);
+		var_dump($messages);exit;
 
         $results = MailClient::sendMail($messages);
 
@@ -86,39 +87,75 @@ class BonModule extends Module {
 
 
 
-	// First notice; send at 30 day expiry;
-	// Second notice at 7 days.
-	public function getMessages($expiring, $test = true) {
-		$list = new \MailMessageList();
+	public function sendBonExpirations($daysBefore = 30) {
 
-		$headers = [
-			"From" 		   	=> "notifications@ocdla.org",
-			"Content-Type" 	=> "text/html",
-			"Cc"			=> "jroot@ocdla.org",
-            "Bcc"           => "jbernal.web.dev@gmail.com"
-		];
+		$productName = "Books Online";
+		$purchaseDaysInPast = 365 - $daysBefore;
 
-		$headers = HttpHeaderCollection::fromArray($headers);
+		$purchaseDate = new \DateTime();
+		$purchaseDate->modify('-'.$purchaseDaysInPast.' day');
+		
 
-		foreach($expiring as $member) {
+
+    	$expiring = $this->goingToExpire($purchaseDate);
+
+        $messages = $this->getMessages($expiring, true);
+		
+
+        $results = MailClient::sendMail($messages);
+
+        var_dump($results, $messages);
+        exit;
+    }
+
+
+
+
+
+
+
+
+    /**
+     * Books Online purchases made 365 days in the past would be expiring TODAY.  So we query for purchases made (365 - $day) in the past; effectively
+     * this means that we query for subscriptions expiring $days from TODAY.
+     */
+    public function goingToExpire($purchaseDate) {
+		
+		$api = loadApi();
+
+
+		$purchaseDateFormatted = $purchaseDate->format('Y-m-d');
+
 	
-			$notice = new \Template("expiring-first-notification");
-			$notice->addPath(__DIR__ . "/templates");
-			$content = $notice->render($member);
+		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True) AND Contact__r.Email != null GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) = {$purchaseDateFormatted}";
 
+		// var_dump($soql);
 
-			$message = $test ? new \MailMessage("jbernal.web.dev@gmail.com") : new \MailMessage($member["Email"]);
-			$message->setSubject("Books Online notifications");
-			$message->setTitle("OCDLA Books Online Subscription");
-			$message->setBody($content);
-			$message->setHeaders($headers);
+		$resp = $api->query($soql);
 
-			$list->add($message);
+		// Convert these to subscriptions; 
+		// var_dump($resp); exit;
+		$formatted = array();
+
+		foreach($resp->getRecords() as $record) {
+			$friendly = new \DateTime($record["EffectiveDate"]);
+			$friendly->modify('+365 day');
+			
+			$text = $friendly->format('F j, Y');
+
+			$item = array(
+				"FirstName" => $record["FirstName"],
+				"LastName" => $record["LastName"],
+				"Email" => $record["Email"],
+				"ExpirationDate" => $text
+			);
+
+			$formatted []=$item;
 		}
 
-
-		return $list;
+		return $formatted;
 	}
+
 
 
 
@@ -159,54 +196,42 @@ class BonModule extends Module {
 	}
 
 
-    /**
-     * Books Online purchases made 365 days in the past would be expiring TODAY.  So we query for purchases made (365 - $day) in the past; effectively
-     * this means that we query for subscriptions expiring $days from TODAY.
-     */
-    public function goingToExpire($days = 30) {
-		
-		$api = loadApi();
 
-		$productName = "Books Online";
-		$daysUntilExpiry = 365 - $days;
 
-		$d1 = new \DateTime();
-		$d2 = new \DateTime();
-		$d1->modify('-365 day');
-		$purchaseDate->modify('-'.$daysUntilExpiry.' day');
 
-		$r1 = $d1->format('Y-m-d');
-		$purchaseDateFormatted = $purchaseDate->format('Y-m-d');
+	// First notice; send at 30 day expiry;
+	// Second notice at 7 days.
+	public function getMessages($expiring, $test = true) {
+		$list = new \MailMessageList();
 
+		$headers = [
+			"From" 		   	=> "notifications@ocdla.org",
+			"Content-Type" 	=> "text/html",
+			"Cc"			=> "jroot@ocdla.org",
+            "Bcc"           => "jbernal.web.dev@gmail.com"
+		];
+
+		$headers = HttpHeaderCollection::fromArray($headers);
+
+		foreach($expiring as $member) {
 	
-		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True) AND Contact__r.Email != null GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) = {$purchaseDateFormatted}";
+			$notice = new \Template("expiring-first-notification");
+			$notice->addPath(__DIR__ . "/templates");
+			$content = $notice->render($member);
 
-		$resp = $api->query($soql);
 
-		// Convert these to subscriptions; 
-		// var_dump($resp); exit;
-		$formatted = array();
+			$message = $test ? new \MailMessage("jbernal.web.dev@gmail.com") : new \MailMessage($member["Email"]);
+			$message->setSubject("Books Online notifications");
+			$message->setTitle("OCDLA Books Online Subscription");
+			$message->setBody($content);
+			$message->setHeaders($headers);
 
-		foreach($resp->getRecords() as $record) {
-			$friendly = new \DateTime($record["EffectiveDate"]);
-			$friendly->modify('+365 day');
-			
-			$text = $friendly->format('F j, Y');
-
-			$item = array(
-				"FirstName" => $record["FirstName"],
-				"LastName" => $record["LastName"],
-				"Email" => $record["Email"],
-				"ExpirationDate" => $text
-			);
-
-			$formatted []=$item;
+			$list->add($message);
 		}
 
-		return $formatted;
+
+		return $list;
 	}
-
-
 
 
 
