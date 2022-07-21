@@ -11,6 +11,11 @@
 			"access": true,
 			"content-type": "text/html"
 		},
+		"bon/expiring/test": {
+			"callback": "testBonExpirations",
+			"access": true,
+			"content-type": "text/html"
+		},
 		"bon/expiring/%days": {
 			"callback": "list",
 			"access": true,

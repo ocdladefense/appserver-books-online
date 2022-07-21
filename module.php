@@ -73,10 +73,10 @@ class BonModule extends Module {
 		$date2 = $d2->format('Y-m-d');
 
 
-        // $expiring = $this->expiresBetween($date1, $date2);
+        $expiring = $this->expiresBetween($date1, $date2);
 
-        $messages = $this->getMessages($expiring, false);
-		var_dump($messages);exit;
+        $messages = $this->getMessages($expiring, true);
+		// var_dump($messages);exit;
 
         $results = MailClient::sendMail($messages);
 
@@ -107,6 +107,35 @@ class BonModule extends Module {
         var_dump($results, $messages);
         exit;
     }
+
+
+    public function testBonExpirations() {
+        $range = 30;
+
+		$productName = "Books Online";
+		$daysUntilExpiry = 365 - $range;
+
+		$d1 = new \DateTime();
+		$d2 = new \DateTime();
+		$d1->modify('-365 day');
+		$d2->modify('-'.$daysUntilExpiry.' day');
+
+		$date1 = $d1->format('Y-m-d');
+		$date2 = $d2->format('Y-m-d');
+
+
+        $expiring = $this->expiresBetween($date1, $date2);
+
+        $messages = $this->getMessages($expiring, true);
+		// var_dump($messages);exit;
+
+        $results = MailClient::sendMail($messages);
+
+        var_dump($results, $messages);
+        exit;
+    }
+
+	
 
 
 
@@ -198,7 +227,7 @@ class BonModule extends Module {
 
 
 
-
+// https://appdev.ocdla.org/bon/expiring/test
 	// First notice; send at 30 day expiry;
 	// Second notice at 7 days.
 	public function getMessages($expiring, $test = true) {
@@ -210,7 +239,7 @@ class BonModule extends Module {
 		$headers = [
 			"From" 		   	=> "notifications@ocdla.org",
 			"Content-Type" 	=> "text/html",
-			"Cc"			=> "jroot@ocdla.org",
+			"Cc"			=> "jroot@ocdla.org, info@ocdla.org",
             "Bcc"           => "jbernal.web.dev@gmail.com"
 		];
 
