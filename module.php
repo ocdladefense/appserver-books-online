@@ -99,7 +99,7 @@ class BonModule extends Module {
 
     	$expiring = $this->goingToExpire($purchaseDate);
 
-        $messages = $this->getMessages($expiring, true);
+        $messages = $this->getMessages($expiring, false);
 		
 
         $results = MailClient::sendMail($messages);
@@ -204,6 +204,9 @@ class BonModule extends Module {
 	public function getMessages($expiring, $test = true) {
 		$list = new \MailMessageList();
 
+		$title = "Your Books Online Subscription";
+
+
 		$headers = [
 			"From" 		   	=> "notifications@ocdla.org",
 			"Content-Type" 	=> "text/html",
@@ -219,11 +222,17 @@ class BonModule extends Module {
 			$notice->addPath(__DIR__ . "/templates");
 			$content = $notice->render($member);
 
+			$template = new Template("email");
+			$template->addPath(get_theme_path());
+			$body = $template->render(array(
+				"content" 	=> $content,
+				"title" 	=> $title
+			));
 
 			$message = $test ? new \MailMessage("jbernal.web.dev@gmail.com") : new \MailMessage($member["Email"]);
 			$message->setSubject("Books Online notifications");
 			$message->setTitle("OCDLA Books Online Subscription");
-			$message->setBody($content);
+			$message->setBody($body);
 			$message->setHeaders($headers);
 
 			$list->add($message);
