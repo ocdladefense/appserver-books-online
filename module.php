@@ -162,7 +162,7 @@ class BonModule extends Module {
 	
 		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True) AND Contact__r.Email != null GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) = {$purchaseDateFormatted}";
 
-		// var_dump($soql);
+		var_dump($soql);
 
 		$resp = $api->query($soql);
 
