@@ -89,6 +89,30 @@ class BonModule extends Module {
 
 	public function sendBonExpirations($daysBefore = 30) {
 
+		$daysBefore = empty($daysBefore) ? 30 : $daysBefore;
+		$productName = "Books Online";
+		$purchaseDaysInPast = 365 - $daysBefore;
+
+		$purchaseDate = new \DateTime();
+		$purchaseDate->modify('-'.$purchaseDaysInPast.' day');
+		
+
+
+    	$expiring = $this->goingToExpire($purchaseDate);
+
+        $messages = $this->getMessages($expiring, false);
+		
+
+        $results = MailClient::sendMail($messages);
+
+        var_dump($results, $messages);
+        exit;
+    }
+
+
+
+	public function sendBonExpirations($daysBefore = 30) {
+
 		$productName = "Books Online";
 		$purchaseDaysInPast = 365 - $daysBefore;
 
@@ -146,7 +170,7 @@ class BonModule extends Module {
 
     /**
      * Books Online purchases made 365 days in the past would be expiring TODAY.  So we query for purchases made (365 - $day) in the past; effectively
-     * this means that we query for subscriptions expiring $days from TODAY.
+     * this means that we query for subscriptions expiring EXACTLY $days from TODAY.
      */
     public function goingToExpire($purchaseDate) {
 		
