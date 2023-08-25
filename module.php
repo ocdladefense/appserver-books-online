@@ -86,7 +86,32 @@ class BonModule extends Module {
 
 
 
+	public function foobar() {
 
+		$list = new \MailMessageList();
+			
+		$headers = [
+			"From" 		   	=> "admin@ocdla.org",
+			"Content-Type" 	=> "text/html",
+			"Cc"			=> "jroot@ocdla.org, info@ocdla.org",
+            "Bcc"           => "jbernal.web.dev@gmail.com"
+		];
+
+		$headers = HttpHeaderCollection::fromArray($headers);
+	
+		$message = new \MailMessage("jbernal.web.dev@gmail.com");
+		$message->setSubject("Books Online notifications");
+		$message->setTitle("OCDLA Books Online Subscription");
+		$message->setBody("<h2>Hello World!</h2>");
+		$message->setHeaders($headers);
+
+		$list->add($message);
+
+        $results = MailClientSes::sendMail($list);
+
+        var_dump($results, $messages);
+		exit;
+	}
 
 
 
@@ -106,7 +131,7 @@ class BonModule extends Module {
         $messages = $this->getMessages($expiring, false);
 		
 
-        $results = MailClient::sendMail($messages);
+        $results = MailClientSes::sendMail($messages);
 
         var_dump($results, $messages);
         exit;

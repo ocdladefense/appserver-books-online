@@ -12,5 +12,10 @@
     },
     "autoload": {
         "classmap": ["components/"]
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true
+        }
     }
 }

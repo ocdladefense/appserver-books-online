@@ -20,6 +20,11 @@
 			"callback": "list",
 			"access": true,
 			"content-type": "text/html"
+		},
+		"bon/test": {
+			"callback": "foobar",
+			"access": true,
+			"content-type": "text/html"
 		}
 	}
 }
