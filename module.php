@@ -86,20 +86,20 @@ class BonModule extends Module {
 
 
 
-	public function foobar() {
+	public function testSingleMessage() {
 
 		$list = new \MailMessageList();
 			
 		$headers = [
 			"From" 		   	=> "admin@ocdla.org",
 			"Content-Type" 	=> "text/html",
-			"Cc"			=> "jroot@ocdla.org, info@ocdla.org",
+			"Cc"			=> "jroot@ocdla.org, info@ocdla.org, jbernal.web.dev@gmail.com",
             "Bcc"           => "jbernal.web.dev@gmail.com"
 		];
 
 		$headers = HttpHeaderCollection::fromArray($headers);
 	
-		$message = new \MailMessage("jbernal.web.dev@gmail.com");
+		$message = new \MailMessage("jose@clickpdx.com");
 		$message->setSubject("Books Online notifications");
 		$message->setTitle("OCDLA Books Online Subscription");
 		$message->setBody("<h2>Hello World!</h2>");
@@ -123,15 +123,34 @@ class BonModule extends Module {
 
 		$purchaseDate = new \DateTime();
 		$purchaseDate->modify('-'.$purchaseDaysInPast.' day');
-		
 
 
     	$expiring = $this->goingToExpire($purchaseDate);
 
-        $messages = $this->getMessages($expiring, false);
+        $messages = $this->getMessages($expiring);
 		
 
         $results = MailClientSes::sendMail($messages);
+
+        var_dump($results, $messages);
+        exit;
+    }
+
+
+	public function sendFreeTrialExpiration($daysBefore = 2) {
+
+		$purchaseDaysInPast = 30 - $daysBefore;
+
+		$purchaseDate = new \DateTime();
+		$purchaseDate->modify('-'.$purchaseDaysInPast.' day');
+		
+
+
+    	$expiring = $this->goingToExpire($purchaseDate, "Books Online Subscription 30");
+
+        $messages = $this->getMessages($expiring);
+
+		$results = MailClientSes::sendMail($messages);
 
         var_dump($results, $messages);
         exit;
@@ -155,10 +174,15 @@ class BonModule extends Module {
 
         $expiring = $this->expiresBetween($date1, $date2);
 
-        $messages = $this->getMessages($expiring, true);
+        $messages = $this->getMessages($expiring);
+
+		foreach($messages as $msg) {
+			$msg->setTo("jbernal.web.dev@gmail.com");
+		}
+		
 		// var_dump($messages);exit;
 
-        $results = MailClient::sendMail($messages);
+		$results = MailClientSes::sendMail($messages);
 
         var_dump($results, $messages);
         exit;
@@ -177,7 +201,7 @@ class BonModule extends Module {
      * Books Online purchases made 365 days in the past would be expiring TODAY.  So we query for purchases made (365 - $day) in the past; effectively
      * this means that we query for subscriptions expiring EXACTLY $days from TODAY.
      */
-    public function goingToExpire($purchaseDate) {
+    public function goingToExpire($purchaseDate, $productName = "Books Online") {
 		
 		$api = loadApi();
 
@@ -185,7 +209,7 @@ class BonModule extends Module {
 		$purchaseDateFormatted = $purchaseDate->format('Y-m-d');
 
 	
-		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True) AND Contact__r.Email != null GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) = {$purchaseDateFormatted}";
+		$soql = "SELECT MAX(Product2.OcdlaSubscriptionTermDays__c) OcdlaSubscriptionTermDays__c, Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%{$productName}%' AND IsActive = True) AND Contact__r.Email != null AND Order.Status != 'Draft' GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) = {$purchaseDateFormatted}";
 
 		var_dump($soql);
 
@@ -195,9 +219,12 @@ class BonModule extends Module {
 		// var_dump($resp); exit;
 		$formatted = array();
 
+
+
 		foreach($resp->getRecords() as $record) {
 			$friendly = new \DateTime($record["EffectiveDate"]);
-			$friendly->modify('+365 day');
+			// $friendly->modify('+365 day');
+			$friendly->modify("+{$record["OcdlaSubscriptionTermDays__c"]} days");
 			
 			$text = $friendly->format('F j, Y');
 
@@ -224,7 +251,7 @@ class BonModule extends Module {
 
 
 	
-		$soql = "SELECT Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True) AND Contact__r.Email != null GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) >= {$start} AND MAX(Order.EffectiveDate) <= {$end}";
+		$soql = "SELECT MAX(Product2.OcdlaSubscriptionTermDays__c) OcdlaSubscriptionTermDays__c, Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email, MAX(Order.EffectiveDate) EffectiveDate FROM OrderItem WHERE Product2Id IN(SELECT Id FROM Product2 WHERE Name LIKE '%Books Online%' AND IsActive = True) AND Contact__r.Email != null GROUP BY Contact__c, Contact__r.FirstName, Contact__r.LastName, Contact__r.Email HAVING MAX(Order.EffectiveDate) >= {$start} AND MAX(Order.EffectiveDate) <= {$end}";
 
         var_dump($soql);
 
@@ -233,7 +260,7 @@ class BonModule extends Module {
 		// Convert these to subscriptions; 
 		// var_dump($resp); exit;
 		$formatted = array();
-
+		
 		foreach($resp->getRecords() as $record) {
 			$friendly = new \DateTime($record["EffectiveDate"]);
 			$friendly->modify('+365 day');
@@ -259,7 +286,7 @@ class BonModule extends Module {
 // https://appdev.ocdla.org/bon/expiring/test
 	// First notice; send at 30 day expiry;
 	// Second notice at 7 days.
-	public function getMessages($expiring, $test = true) {
+	public function getMessages($expiring) {
 		$list = new \MailMessageList();
 
 		$title = "Your Books Online Subscription";
@@ -287,7 +314,7 @@ class BonModule extends Module {
 				"title" 	=> $title
 			));
 
-			$message = $test ? new \MailMessage("jbernal.web.dev@gmail.com") : new \MailMessage($member["Email"]);
+			$message = new \MailMessage($member["Email"]);
 			$message->setSubject("Books Online notifications");
 			$message->setTitle("OCDLA Books Online Subscription");
 			$message->setBody($body);

@@ -11,6 +11,11 @@
 			"access": true,
 			"content-type": "text/html"
 		},
+		"bon/expiring-free-trial/send/%days": {
+			"callback": "sendFreeTrialExpiration",
+			"access": true,
+			"content-type": "text/html"
+		},
 		"bon/expiring/test": {
 			"callback": "testBonExpirations",
 			"access": true,
@@ -22,7 +27,7 @@
 			"content-type": "text/html"
 		},
 		"bon/test": {
-			"callback": "foobar",
+			"callback": "testSingleMessage",
 			"access": true,
 			"content-type": "text/html"
 		}
